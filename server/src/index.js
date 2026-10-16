@@ -10,7 +10,9 @@ async function main() {
   let uri = MONGODB_URI;
   if (!uri || uri === 'memory') {
     // Throwaway in-memory DB for trying things out; data is lost on restart.
-    const { MongoMemoryServer } = await import('mongodb-memory-server');
+    const { MongoMemoryServer } = await import('mongodb-memory-server').catch(() => {
+      throw new Error('MONGODB_URI is not set. Add your MongoDB Atlas connection string to the environment.');
+    });
     uri = (await MongoMemoryServer.create()).getUri('calrecipe');
     console.warn('⚠️  MONGODB_URI not set — using an in-memory database (data will NOT persist).');
   }

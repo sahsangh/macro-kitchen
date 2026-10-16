@@ -1,0 +1,19 @@
+# Render Blueprint: deploys the API (server/) as a free web service.
+# Render → New → Blueprint → pick this repo. It asks for the two secrets below.
+services:
+  - type: web
+    name: macro-kitchen-api
+    runtime: node
+    plan: free # sleeps after ~15 min idle; first request then takes ~30–60 s
+    region: virginia
+    rootDir: server
+    buildCommand: npm ci --omit=dev
+    startCommand: node src/index.js
+    healthCheckPath: /health
+    envVars:
+      - key: MONGODB_URI # your Atlas connection string
+        sync: false
+      - key: USDA_API_KEY # https://fdc.nal.usda.gov/api-key-signup
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
