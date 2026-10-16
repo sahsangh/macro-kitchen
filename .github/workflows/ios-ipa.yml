@@ -1,0 +1,76 @@
+# Builds an unsigned iPhone app (.ipa) for sideloading with AltStore.
+# AltStore re-signs it with your own Apple ID when you install it.
+#
+# Runs on every push that touches mobile/, or manually from the Actions tab.
+# The .ipa is attached to a GitHub Release so you can download it on your phone.
+name: iOS app for AltStore
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['mobile/**', '.github/workflows/ios-ipa.yml']
+
+permissions:
+  contents: write # create the Release
+
+concurrency:
+  group: ios-ipa
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-26
+    timeout-minutes: 60
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+
+      - name: Install JS dependencies
+        run: npm ci
+
+      - name: Generate native iOS project
+        run: npx expo prebuild --platform ios --clean
+
+      - name: Build unsigned app
+        run: |
+          set -o pipefail
+          WORKSPACE=$(ls -d ios/*.xcworkspace | head -1)
+          SCHEME=$(basename "$WORKSPACE" .xcworkspace)
+          echo "Building scheme $SCHEME"
+          xcodebuild \
+            -workspace "$WORKSPACE" \
+            -scheme "$SCHEME" \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            build | tail -n 80
+          mkdir -p dist/Payload
+          cp -R "build/Build/Products/Release-iphoneos/$SCHEME.app" dist/Payload/
+          (cd dist && zip -qry MacroKitchen.ipa Payload)
+          ls -lh dist/MacroKitchen.ipa
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MacroKitchen-ipa
+          path: mobile/dist/MacroKitchen.ipa
+
+      - name: Publish as a Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="ios-build-${{ github.run_number }}"
+          gh release create "$TAG" dist/MacroKitchen.ipa \
+            --title "Macro Kitchen (build ${{ github.run_number }})" \
+            --notes "Open this page on your iPhone, download MacroKitchen.ipa, then share it to AltStore." \
+            --latest
