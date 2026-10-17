@@ -5,6 +5,7 @@ import LogEntry from '../models/LogEntry.js';
 import { ah, HttpError, localDate, meal } from '../lib/http.js';
 import { positiveNumber, round1, roundMacros, scalePer100, scaleTotal } from '../lib/macros.js';
 import { resolveGrams } from '../lib/portion.js';
+import { guessDensity } from '../lib/density.js';
 
 const r = Router();
 
@@ -33,10 +34,12 @@ r.post('/', ah(async (req, res) => {
   const totalWeightG = positiveNumber(req.body.totalWeightG);
   if (!totalWeightG) throw new HttpError(400, 'Total weight is required');
   let totals;
+  let density = 1;
   if (req.body.foodId) {
     const food = await Food.findById(req.body.foodId);
     if (!food) throw new HttpError(404, 'Food not found');
     name ||= food.name;
+    density = food.density ?? guessDensity(food.name);
     totals = roundMacros(scalePer100(food.per100g, totalWeightG));
   } else {
     totals = roundMacros(req.body.totals || {});
@@ -49,6 +52,7 @@ r.post('/', ah(async (req, res) => {
     servings: positiveNumber(req.body.servings) || 1,
     totals,
     remainingG: totalWeightG,
+    density,
     events: [{ type: 'made', grams: totalWeightG }],
   });
   res.status(201).json({ batch });

@@ -34,7 +34,7 @@ export default function BatchScreen() {
   if (!data) return <Loading />;
   const b = data.batch;
   const date = dateParam ?? today();
-  const whole = { totalWeightG: b.totalWeightG, servings: b.servings };
+  const whole = { totalWeightG: b.totalWeightG, servings: b.servings, density: b.density ?? 1 };
   const servingG = b.totalWeightG / b.servings;
   const perGram = scale(b.totals, 1 / b.totalWeightG);
   const active = b.status === 'active';

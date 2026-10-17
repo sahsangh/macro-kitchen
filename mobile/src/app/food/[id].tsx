@@ -5,7 +5,7 @@ import { View } from 'react-native';
 import { MacroGrid } from '@/components/macros';
 import { MealPicker } from '@/components/MealPicker';
 import { PortionPicker } from '@/components/PortionPicker';
-import { Button, Card, ErrorText, Field, Loading, Row, Screen, SectionHeader, success, T } from '@/components/ui';
+import { Button, Card, ErrorText, Field, Loading, Row, Screen, Segmented, SectionHeader, success, T } from '@/components/ui';
 import { Space } from '@/constants/theme';
 import { post } from '@/lib/api';
 import { defaultMeal, prettyDate, today } from '@/lib/date';
@@ -24,6 +24,7 @@ export default function FoodScreen() {
   const [grams, setGrams] = useState<number | undefined>();
   const [meal, setMeal] = useState<Meal>(flow.meal ?? defaultMeal());
   const [pkgWeight, setPkgWeight] = useState('');
+  const [pkgUnit, setPkgUnit] = useState<'g' | 'ml'>('g');
   const [pkgServings, setPkgServings] = useState('');
   const [busy, setBusy] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -57,7 +58,7 @@ export default function FoodScreen() {
     router.dismissTo('/recipe/edit');
   };
 
-  const pkgG = Number(pkgWeight);
+  const pkgG = Number(pkgWeight) * (pkgUnit === 'ml' ? food.density ?? 1 : 1);
   const track = () =>
     run(async () => {
       await post('/batches', { foodId: food._id, totalWeightG: pkgG, servings: Number(pkgServings) || (food.servingSizeG ? pkgG / food.servingSizeG : 1) });
@@ -79,8 +80,9 @@ export default function FoodScreen() {
       {flow.mode === 'track' ? (
         <Card style={{ gap: Space.md }}>
           <T muted>How much of it do you have? It’ll go in your pantry so you can eat it down over time.</T>
+          <Segmented value={pkgUnit} onChange={setPkgUnit} options={[{ value: 'g', label: 'By weight (g)' }, { value: 'ml', label: 'By volume (ml)' }]} />
           <Row gap={Space.sm}>
-            <Field label="Total weight (g)" value={pkgWeight} onChangeText={setPkgWeight} keyboardType="decimal-pad" placeholder="e.g. 907" style={{ flex: 1 }} autoFocus />
+            <Field label={pkgUnit === 'ml' ? 'Total volume (ml)' : 'Total weight (g)'} value={pkgWeight} onChangeText={setPkgWeight} keyboardType="decimal-pad" placeholder={pkgUnit === 'ml' ? 'e.g. 1750' : 'e.g. 907'} style={{ flex: 1 }} autoFocus />
             <Field label="Servings in it" value={pkgServings} onChangeText={setPkgServings} keyboardType="decimal-pad" placeholder={food.servingSizeG && pkgG ? fmt(pkgG / food.servingSizeG, 1) : '1'} style={{ flex: 1 }} />
           </Row>
           {pkgG > 0 && (
@@ -95,7 +97,7 @@ export default function FoodScreen() {
       ) : (
         <>
           <Card style={{ gap: Space.md }}>
-            <PortionPicker whole={{ servingSizeG: food.servingSizeG }} initialMode={flow.mode === 'ingredient' ? 'g' : undefined} onChange={setGrams} />
+            <PortionPicker whole={{ servingSizeG: food.servingSizeG, density: food.density ?? 1 }} initialMode={flow.mode === 'ingredient' ? 'g' : undefined} onChange={setGrams} />
           </Card>
           <SectionHeader title={grams ? `Nutrition for ${fmtG(grams)}` : 'Nutrition'} />
           <MacroGrid m={per100(food.per100g, grams ?? 0)} />

@@ -115,6 +115,14 @@ test('eating the rest finishes the batch; food log by servings', async () => {
   assert.equal(egg.per100g.calories, 144);
   const e = await api('POST', '/logs', { kind: 'food', foodId: egg._id, servings: 2, date, meal: 'breakfast' });
   assert.equal(e.data.entry.macros.calories, 144);
+  // Liquids: nutrition per 100 ml, serving in ml, density guessed from the name.
+  const oil = (await api('POST', '/foods', { name: 'Olive oil', basis: 100, basisUnit: 'ml', servingSize: 15, servingUnit: 'ml', macros: { calories: 828, fat: 92 } })).data.food;
+  assert.equal(oil.density, 0.92);
+  assert.equal(Math.round(oil.per100g.calories), 900); // 828 kcal per 92 g
+  assert.equal(oil.servingSizeG, 13.8);
+  assert.equal(oil.servingLabel, '15 ml');
+  assert.equal((await api('POST', '/foods', { name: 'Oat drink', macros: { calories: 45 } })).data.food.density, 1);
+
   const recent = await api('GET', '/foods/recent');
   assert.equal(recent.data.foods[0]._id, egg._id);
 });

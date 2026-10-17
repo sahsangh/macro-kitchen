@@ -1,10 +1,10 @@
 /**
- * One portion, three ways. Given the whole (total weight + number of
- * servings), convert between grams, servings and percent of the whole.
+ * One portion, several ways. Given the whole (total weight + number of
+ * servings) and a density, convert between grams, ml, servings and percent.
  */
-export type PortionMode = 'g' | 'servings' | 'pct';
+export type PortionMode = 'g' | 'ml' | 'servings' | 'pct';
 
-export type Whole = { totalWeightG?: number; servings?: number; servingSizeG?: number };
+export type Whole = { totalWeightG?: number; servings?: number; servingSizeG?: number; density?: number };
 
 export function servingSize(w: Whole) {
   if (w.servingSizeG) return w.servingSizeG;
@@ -15,6 +15,7 @@ export function servingSize(w: Whole) {
 export function toGrams(value: number, mode: PortionMode, w: Whole): number | undefined {
   if (!(value > 0)) return undefined;
   if (mode === 'g') return value;
+  if (mode === 'ml') return value * (w.density || 1);
   if (mode === 'servings') {
     const s = servingSize(w);
     return s ? value * s : undefined;
@@ -24,6 +25,7 @@ export function toGrams(value: number, mode: PortionMode, w: Whole): number | un
 
 export function fromGrams(grams: number, mode: PortionMode, w: Whole): number | undefined {
   if (mode === 'g') return grams;
+  if (mode === 'ml') return grams / (w.density || 1);
   if (mode === 'servings') {
     const s = servingSize(w);
     return s ? grams / s : undefined;

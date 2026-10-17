@@ -13,6 +13,7 @@ export type Food = {
   per100g: Macros;
   servingSizeG?: number;
   servingLabel?: string;
+  density?: number; // g per ml
 };
 
 export type Ingredient = { _id?: string; _key?: string; food?: string; name: string; grams: number; per100g: Macros };
@@ -40,6 +41,7 @@ export type Batch = {
   servings: number;
   totals: Macros;
   remainingG: number;
+  density?: number;
   status: 'active' | 'finished' | 'discarded';
   events: BatchEvent[];
   madeAt: string;

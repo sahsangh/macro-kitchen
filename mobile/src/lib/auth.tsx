@@ -7,6 +7,7 @@ import type { Macros, User } from './types';
 
 const KEY = 'calrecipe.token';
 const SERVER_KEY = 'calrecipe.server';
+const USER_KEY = 'calrecipe.user';
 
 // SecureStore is native-only; fall back to localStorage on web.
 const kv = (key: string) => ({
@@ -16,6 +17,10 @@ const kv = (key: string) => ({
 });
 const store = kv(KEY);
 const serverStore = kv(SERVER_KEY);
+// Last known profile, so the app opens signed-in even if the server is
+// restarting or still waking up.
+const userStore = kv(USER_KEY);
+const cacheUser = (u: User) => userStore.set(JSON.stringify(u)).catch(() => {});
 
 type AuthState = {
   user: User | null;
@@ -39,7 +44,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = useCallback(async () => {
     setToken(null);
     setUser(null);
-    await store.clear();
+    await Promise.all([store.clear(), userStore.clear()]);
   }, []);
 
   useEffect(() => {
@@ -49,16 +54,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const savedServer = await serverStore.get();
         if (savedServer) setServerUrl(setApiUrl(savedServer));
         const saved = await store.get();
-        if (saved) {
-          setToken(saved);
-          const { user } = await get<{ user: User }>('/auth/me');
-          setUser(user);
-        }
-      } catch (e: any) {
-        // Keep the token if the server is just unreachable; drop it if it was rejected.
-        if (e?.status === 401) await signOut();
+        if (!saved) return;
+        setToken(saved);
+        const cached = await userStore.get().catch(() => null);
+        if (cached) setUser(JSON.parse(cached));
+      } catch {
+        // unreadable storage: fall through to the sign-in screen
       } finally {
         setLoading(false);
+      }
+      // Refresh the profile in the background. Only a rejected token signs
+      // you out; an unreachable or sleeping server keeps you signed in.
+      try {
+        const { user } = await get<{ user: User }>('/auth/me');
+        setUser(user);
+        cacheUser(user);
+      } catch (e: any) {
+        if (e?.status === 401) await signOut();
       }
     })();
   }, [signOut]);
@@ -67,6 +79,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setToken(token);
     await store.set(token);
     setUser(user);
+    cacheUser(user);
   };
 
   const value = useMemo<AuthState>(
@@ -76,7 +89,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signOut,
       signIn: async (username, password) => finish(await post('/auth/login', { username, password })),
       signUp: async (name, username, password) => finish(await post('/auth/register', { name, username, password })),
-      updateProfile: async (changes) => setUser((await patch<{ user: User }>('/auth/me', changes)).user),
+      updateProfile: async (changes) => {
+        const { user } = await patch<{ user: User }>('/auth/me', changes);
+        setUser(user);
+        cacheUser(user);
+      },
       serverUrl,
       changeServer: async (url) => {
         await signOut();

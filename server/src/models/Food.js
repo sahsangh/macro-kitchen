@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import { MacroSchema } from './shared.js';
+import { guessDensity } from '../lib/density.js';
 
 /**
  * Shared nutrition cache. Every food pulled from USDA / Open Food Facts lands
@@ -15,12 +16,20 @@ const FoodSchema = new mongoose.Schema(
     sourceId: { type: String },
     per100g: { type: MacroSchema, required: true },
     servingSizeG: { type: Number },
+    density: { type: Number }, // g per ml; guessed from the name when not set
     servingLabel: { type: String },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     searchText: { type: String, index: true },
   },
   { timestamps: true },
 );
+
+FoodSchema.set('toJSON', {
+  transform: (_doc, ret) => {
+    ret.density ??= guessDensity(ret.name);
+    return ret;
+  },
+});
 
 FoodSchema.index({ source: 1, sourceId: 1 }, { unique: true, partialFilterExpression: { sourceId: { $type: 'string' } } });
 

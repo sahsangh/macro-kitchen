@@ -3,7 +3,8 @@ import mongoose from 'mongoose';
 import Food from '../models/Food.js';
 import LogEntry from '../models/LogEntry.js';
 import { ah, HttpError } from '../lib/http.js';
-import { MACRO_KEYS } from '../lib/macros.js';
+import { MACRO_KEYS, positiveNumber } from '../lib/macros.js';
+import { guessDensity } from '../lib/density.js';
 import { lookupBarcode, searchFoods } from '../services/nutrition.js';
 
 const r = Router();
@@ -40,11 +41,19 @@ r.get('/:id', ah(async (req, res) => {
   res.json({ food });
 }));
 
-/** Custom food. Macros may be entered per serving or per 100 g. */
+/**
+ * Custom food. Nutrition may be given per serving, per 100 g or per 100 ml;
+ * ml amounts are converted to grams with the food's density.
+ */
 r.post('/', ah(async (req, res) => {
-  const { name, brand, barcode, servingSizeG, servingLabel } = req.body;
+  const { name, brand, barcode, servingLabel } = req.body;
   if (!String(name || '').trim()) throw new HttpError(400, 'Name is required');
-  const basisG = Number(req.body.basisG) || 100;
+  const density = positiveNumber(req.body.density) || guessDensity(name);
+  const toG = (amount, unit) => (unit === 'ml' ? amount * density : amount);
+
+  const servingSize = positiveNumber(req.body.servingSize ?? req.body.servingSizeG);
+  const servingUnit = req.body.servingUnit === 'ml' ? 'ml' : 'g';
+  const basisG = positiveNumber(req.body.basisG) || toG(positiveNumber(req.body.basis) || 100, req.body.basisUnit);
   const m = req.body.macros || {};
   const per100g = {};
   for (const k of MACRO_KEYS) per100g[k] = ((Number(m[k]) || 0) * 100) / basisG;
@@ -55,8 +64,9 @@ r.post('/', ah(async (req, res) => {
     barcode: barcode ? String(barcode).replace(/\D/g, '') : undefined,
     source: 'custom',
     per100g,
-    servingSizeG: Number(servingSizeG) || undefined,
-    servingLabel: servingLabel || undefined,
+    density,
+    servingSizeG: servingSize ? toG(servingSize, servingUnit) : undefined,
+    servingLabel: servingLabel || (servingSize && servingUnit === 'ml' ? `${servingSize} ml` : undefined),
     createdBy: req.userId,
   });
   res.status(201).json({ food });

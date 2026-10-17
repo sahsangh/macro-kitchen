@@ -25,6 +25,7 @@ const BatchSchema = new mongoose.Schema(
     servings: { type: Number, required: true, min: 0.01 },
     totals: { type: MacroSchema, required: true }, // macros of the whole batch
     remainingG: { type: Number, required: true, min: 0 },
+    density: { type: Number, default: 1 }, // g per ml, for portions entered in ml
     status: { type: String, enum: ['active', 'finished', 'discarded'], default: 'active', index: true },
     events: [EventSchema],
     madeAt: { type: Date, default: Date.now },
