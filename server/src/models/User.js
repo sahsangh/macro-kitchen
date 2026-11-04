@@ -12,12 +12,16 @@ const UserSchema = new mongoose.Schema(
       fat: { type: Number, default: 70 },
       fiber: { type: Number, default: 30 },
     },
+    settings: {
+      weightUnit: { type: String, enum: ['lb', 'kg'], default: 'lb' },
+      addExerciseCalories: { type: Boolean, default: false },
+    },
   },
   { timestamps: true },
 );
 
 UserSchema.methods.toPublic = function () {
-  return { id: this._id, name: this.name, username: this.username, goals: this.goals };
+  return { id: this._id, name: this.name, username: this.username, goals: this.goals, settings: this.settings };
 };
 
 export default mongoose.model('User', UserSchema);

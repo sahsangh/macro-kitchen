@@ -6,6 +6,10 @@ import foodRoutes from './routes/foods.js';
 import recipeRoutes from './routes/recipes.js';
 import batchRoutes from './routes/batches.js';
 import logRoutes from './routes/logs.js';
+import exerciseRoutes from './routes/exercises.js';
+import routineRoutes from './routes/routines.js';
+import workoutRoutes from './routes/workouts.js';
+import weightRoutes from './routes/weights.js';
 
 export function createApp() {
   const app = express();
@@ -18,6 +22,10 @@ export function createApp() {
   app.use('/recipes', requireAuth, recipeRoutes);
   app.use('/batches', requireAuth, batchRoutes);
   app.use('/logs', requireAuth, logRoutes);
+  app.use('/exercises', requireAuth, exerciseRoutes);
+  app.use('/routines', requireAuth, routineRoutes);
+  app.use('/workouts', requireAuth, workoutRoutes);
+  app.use('/weights', requireAuth, weightRoutes);
 
   app.use((_req, res) => res.status(404).json({ error: 'Not found' }));
   // eslint-disable-next-line no-unused-vars

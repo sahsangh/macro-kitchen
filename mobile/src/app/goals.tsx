@@ -1,8 +1,9 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
+import { Switch, View } from 'react-native';
 
-import { Button, ErrorText, Field, Row, Screen, T } from '@/components/ui';
-import { useTheme } from '@/constants/theme';
+import { Button, Card, ErrorText, Field, Row, Screen, SectionHeader, Segmented, T } from '@/components/ui';
+import { Space, useTheme } from '@/constants/theme';
 import { useAuth } from '@/lib/auth';
 import { fmt } from '@/lib/macros';
 
@@ -16,6 +17,8 @@ export default function GoalsScreen() {
     fat: String(user!.goals.fat),
     fiber: String(user!.goals.fiber ?? 30),
   });
+  const [weightUnit, setWeightUnit] = useState<'lb' | 'kg'>(user!.settings?.weightUnit ?? 'lb');
+  const [addBack, setAddBack] = useState(!!user!.settings?.addExerciseCalories);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fromMacros = Number(v.protein) * 4 + Number(v.carbs) * 4 + Number(v.fat) * 9;
@@ -23,7 +26,7 @@ export default function GoalsScreen() {
   const save = async () => {
     setBusy(true);
     try {
-      await updateProfile({ goals: { calories: +v.calories, protein: +v.protein, carbs: +v.carbs, fat: +v.fat, fiber: +v.fiber } });
+      await updateProfile({ goals: { calories: +v.calories, protein: +v.protein, carbs: +v.carbs, fat: +v.fat, fiber: +v.fiber }, settings: { weightUnit, addExerciseCalories: addBack } });
       router.back();
     } catch (e: any) {
       setError(e.message);
@@ -50,6 +53,22 @@ export default function GoalsScreen() {
           </T>
         )}
       </T>
+      <SectionHeader title="Training" />
+      <Card style={{ gap: Space.md }}>
+        <Row style={{ justifyContent: 'space-between' }}>
+          <T>Units</T>
+          <View style={{ width: 160 }}>
+            <Segmented value={weightUnit} onChange={setWeightUnit} options={[{ value: 'lb', label: 'lb · mi' }, { value: 'kg', label: 'kg · km' }]} />
+          </View>
+        </Row>
+        <Row style={{ justifyContent: 'space-between' }} gap={Space.md}>
+          <View style={{ flex: 1 }}>
+            <T>Add exercise calories to my budget</T>
+            <T variant="caption">Off: burned calories are shown but your food goal stays the same. Burn estimates often run high, so many people leave this off.</T>
+          </View>
+          <Switch value={addBack} onValueChange={setAddBack} trackColor={{ true: c.accent }} />
+        </Row>
+      </Card>
       <ErrorText>{error}</ErrorText>
       <Button title="Save" onPress={save} loading={busy} />
     </Screen>

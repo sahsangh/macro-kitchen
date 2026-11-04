@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import { createApp } from './app.js';
 import { loadEnv } from './lib/env.js';
+import { ensureBuiltinExercises } from './lib/exerciseLibrary.js';
 
 loadEnv();
 
@@ -20,6 +21,7 @@ async function main() {
 
   await mongoose.connect(uri);
   console.log('Connected to MongoDB');
+  await ensureBuiltinExercises();
   createApp().listen(PORT, '0.0.0.0', () => console.log(`API listening on http://0.0.0.0:${PORT}`));
 }
 

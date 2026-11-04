@@ -12,7 +12,7 @@ import { useAuth } from '@/lib/auth';
 import { prettyDate, shiftDate, today } from '@/lib/date';
 import { fmt, fmtG, ZERO } from '@/lib/macros';
 import { useFetch } from '@/lib/useFetch';
-import { Batch, LogEntry, Macros, Meal, MEALS } from '@/lib/types';
+import { Batch, LogEntry, Macros, Meal, MEALS, Workout } from '@/lib/types';
 
 const MEAL_LABEL: Record<Meal, string> = { breakfast: 'Breakfast', lunch: 'Lunch', dinner: 'Dinner', snack: 'Snacks' };
 const MEAL_ICON = { breakfast: 'sunny', lunch: 'partly-sunny', dinner: 'moon', snack: 'cafe' } as const;
@@ -22,11 +22,14 @@ export default function TodayScreen() {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const [date, setDate] = useState(today());
-  const day = useFetch<{ entries: LogEntry[]; totals: Macros }>(`/logs?date=${date}`);
+  const day = useFetch<{ entries: LogEntry[]; totals: Macros; exercise?: { burned: number; workouts: Pick<Workout, '_id' | 'name' | 'caloriesBurned'>[] } }>(`/logs?date=${date}`);
   const pantry = useFetch<{ batches: Batch[] }>('/batches');
   const goals = user!.goals;
   const totals = day.data?.totals ?? ZERO;
-  const left = goals.calories - totals.calories;
+  const burned = day.data?.exercise?.burned ?? 0;
+  const addBack = !!user!.settings?.addExerciseCalories;
+  const budget = goals.calories + (addBack ? burned : 0);
+  const left = budget - totals.calories;
 
   const entryActions = (e: LogEntry) => {
     const moveTo = MEALS.filter((m) => m !== e.meal);
@@ -56,6 +59,16 @@ export default function TodayScreen() {
 
   const active = pantry.data?.batches ?? [];
 
+  const exerciseActions = () => {
+    const options = ['Log cardio', 'Start a workout', 'Cancel'];
+    const act = (i: number) => {
+      if (i === 0) router.push({ pathname: '/cardio', params: { date } });
+      if (i === 1) router.navigate('/train');
+    };
+    if (Platform.OS === 'ios') ActionSheetIOS.showActionSheetWithOptions({ options, cancelButtonIndex: 2 }, act);
+    else Alert.alert('Exercise', undefined, [{ text: options[0], onPress: () => act(0) }, { text: options[1], onPress: () => act(1) }, { text: 'Cancel', style: 'cancel' }]);
+  };
+
   return (
     <Screen
       contentStyle={{ paddingTop: insets.top + Space.sm }}
@@ -70,13 +83,14 @@ export default function TodayScreen() {
 
       <Card style={{ gap: Space.lg }}>
         <Row gap={Space.lg}>
-          <Ring value={totals.calories} goal={goals.calories} color={c.calories} size={136}>
+          <Ring value={totals.calories} goal={budget} color={c.calories} size={136}>
             <T variant="number" style={{ fontSize: 28 }}>{fmt(Math.abs(left))}</T>
             <T variant="caption">{left >= 0 ? 'kcal left' : 'kcal over'}</T>
           </Ring>
           <View style={{ flex: 1, gap: Space.sm }}>
             <StatLine label="Goal" value={fmt(goals.calories)} />
             <StatLine label="Eaten" value={fmt(totals.calories)} />
+            {burned > 0 && <StatLine label={addBack ? 'Exercise' : 'Burned'} value={`${addBack ? '+' : ''}${fmt(burned)}`} color={addBack ? c.protein : c.textSecondary} />}
             <Divider />
             <StatLine label={left >= 0 ? 'Remaining' : 'Over'} value={fmt(Math.abs(left))} color={left >= 0 ? c.accent : c.warning} />
           </View>
@@ -136,6 +150,19 @@ export default function TodayScreen() {
           </Card>
         );
       })}
+      <Card style={{ paddingVertical: Space.md, gap: 2 }}>
+        <Row style={{ justifyContent: 'space-between' }}>
+          <Row>
+            <Ionicons name="barbell" size={18} color={c.textSecondary} />
+            <T variant="h3">Exercise</T>
+            {burned > 0 && <T variant="caption">{fmt(burned)} kcal</T>}
+          </Row>
+          <IconButton icon="add-circle" size={28} onPress={() => exerciseActions()} />
+        </Row>
+        {(day.data?.exercise?.workouts ?? []).map((w) => (
+          <ListRow key={w._id} title={w.name} right={<T variant="number">{fmt(w.caloriesBurned)}</T>} onPress={() => router.push({ pathname: '/workout/[id]', params: { id: w._id } })} />
+        ))}
+      </Card>
       {day.error && <T color={c.danger}>{day.error}</T>}
       {totals.calories > 0 && (
         <View style={{ alignItems: 'center' }}>

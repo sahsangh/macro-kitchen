@@ -30,7 +30,10 @@ export default function ProfileScreen() {
         <Divider />
         <ListRow icon="git-branch" title="Fiber" right={<T variant="number">{fmt(g.fiber)} g</T>} onPress={() => router.push('/goals')} />
       </Card>
-      <Button title="Edit goals" kind="secondary" icon="create-outline" onPress={() => router.push('/goals')} />
+      <Card style={{ paddingVertical: Space.sm }}>
+        <ListRow icon="scale" title="Body weight" onPress={() => router.push('/weight')} />
+      </Card>
+      <Button title="Goals & settings" kind="secondary" icon="create-outline" onPress={() => router.push('/goals')} />
       <Button
         title="Sign out"
         kind="danger"

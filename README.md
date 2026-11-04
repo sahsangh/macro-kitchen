@@ -14,6 +14,7 @@ server/   Node + Express API on MongoDB
 | **Food** | Calories, protein, carbs, fat and fiber per 100 g. Searches and barcode scans check our MongoDB first; only misses go to **USDA FoodData Central** and **Open Food Facts**, and every result is saved so the DB grows and repeat lookups are instant. |
 | **Recipe** | Ingredients (each with grams and macros) + **no-macro extras** (spices, etc.) + servings + finished weight. |
 | **Pantry item** | Created when you tap **I made this** on a recipe (or track a package). Holds the real cooked weight and what's left. Eating a portion logs it to your day and subtracts it; deleting that diary entry puts it back. |
+| **Training** | Exercise library (~70 built-in + your own), routines, a live workout mode (last time's sets, check-offs, rest timer, autosave), cardio logging, personal bests and charts, body-weight trend. Calories burned are estimated from your logged weight (MET values; distance-based for running/walking) and can optionally be added to your food budget. |
 | **Portions** | Everywhere you enter an amount you can switch between **Servings / Grams / % or fraction** (type `1/3`). All three stay in sync. |
 
 ## Setup (one time)

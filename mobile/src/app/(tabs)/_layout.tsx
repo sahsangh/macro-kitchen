@@ -18,6 +18,7 @@ export default function TabsLayout() {
       <Tabs.Screen name="index" options={{ title: 'Today', headerShown: false, tabBarIcon: ({ color, size }) => <Ionicons name="today" color={color} size={size} /> }} />
       <Tabs.Screen name="pantry" options={{ title: 'Pantry', tabBarIcon: ({ color, size }) => <Ionicons name="file-tray-stacked" color={color} size={size} /> }} />
       <Tabs.Screen name="recipes" options={{ title: 'Recipes', tabBarIcon: ({ color, size }) => <Ionicons name="book" color={color} size={size} /> }} />
+      <Tabs.Screen name="train" options={{ title: 'Train', tabBarIcon: ({ color, size }) => <Ionicons name="barbell" color={color} size={size} /> }} />
       <Tabs.Screen name="profile" options={{ title: 'Me', tabBarIcon: ({ color, size }) => <Ionicons name="person-circle" color={color} size={size} /> }} />
     </Tabs>
   );

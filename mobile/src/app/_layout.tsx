@@ -38,7 +38,13 @@ function RootStack() {
           <Stack.Screen name="recipe/edit" options={{ presentation: 'modal', title: 'Recipe' }} />
           <Stack.Screen name="recipe/cook" options={{ presentation: 'modal', title: 'I made this' }} />
           <Stack.Screen name="batch/[id]" options={{ title: '' }} />
-          <Stack.Screen name="goals" options={{ presentation: 'modal', title: 'Daily goals' }} />
+          <Stack.Screen name="goals" options={{ presentation: 'modal', title: 'Goals & settings' }} />
+          <Stack.Screen name="workout/[id]" options={{ title: 'Workout', gestureEnabled: false }} />
+          <Stack.Screen name="exercise-picker" options={{ presentation: 'modal', title: 'Add exercises' }} />
+          <Stack.Screen name="routine/edit" options={{ presentation: 'modal', title: 'Routine' }} />
+          <Stack.Screen name="cardio" options={{ presentation: 'modal', title: 'Log cardio' }} />
+          <Stack.Screen name="exercise/[id]" options={{ title: '' }} />
+          <Stack.Screen name="weight" options={{ title: 'Body weight' }} />
         </Stack.Protected>
       </Stack>
     </ThemeProvider>

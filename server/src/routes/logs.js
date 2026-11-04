@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import Batch from '../models/Batch.js';
 import Food from '../models/Food.js';
 import LogEntry from '../models/LogEntry.js';
+import Workout from '../models/Workout.js';
 import { ah, HttpError, localDate, meal } from '../lib/http.js';
 import { addMacros, round1, roundMacros, scalePer100, zeroMacros } from '../lib/macros.js';
 import { resolveGrams } from '../lib/portion.js';
@@ -13,7 +14,9 @@ r.get('/', ah(async (req, res) => {
   const date = localDate(req.query.date);
   const entries = await LogEntry.find({ user: req.userId, date }).sort({ createdAt: 1 });
   const totals = roundMacros(entries.reduce((acc, e) => addMacros(acc, e.macros), zeroMacros()));
-  res.json({ date, entries, totals });
+  const workouts = await Workout.find({ user: req.userId, date, status: 'done' }, 'name caloriesBurned startedAt endedAt').sort({ startedAt: 1 });
+  const burned = workouts.reduce((n, w) => n + (w.caloriesBurned || 0), 0);
+  res.json({ date, entries, totals, exercise: { burned, workouts } });
 }));
 
 /** Daily totals for a date range (inclusive), for the history chart. */

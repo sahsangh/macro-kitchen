@@ -3,7 +3,7 @@ import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, 
 import { Platform } from 'react-native';
 
 import { get, getApiUrl, normalizeUrl, patch, post, setApiUrl, setToken, setUnauthorizedHandler } from './api';
-import type { Macros, User } from './types';
+import type { Macros, Settings, User } from './types';
 
 const KEY = 'calrecipe.token';
 const SERVER_KEY = 'calrecipe.server';
@@ -28,7 +28,7 @@ type AuthState = {
   signIn: (username: string, password: string) => Promise<void>;
   signUp: (name: string, username: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
-  updateProfile: (changes: { name?: string; goals?: Partial<Macros> }) => Promise<void>;
+  updateProfile: (changes: { name?: string; goals?: Partial<Macros>; settings?: Partial<Settings> }) => Promise<void>;
   serverUrl: string;
   /** Save a different server address (null = default). Signs out, since accounts live on the server. */
   changeServer: (url: string | null) => Promise<void>;

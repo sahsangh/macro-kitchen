@@ -43,6 +43,9 @@ r.patch('/me', requireAuth, ah(async (req, res) => {
     const v = positiveNumber(req.body.goals?.[k]);
     if (v) user.goals[k] = Math.round(v);
   }
+  const settings = req.body.settings || {};
+  if (['lb', 'kg'].includes(settings.weightUnit)) user.settings.weightUnit = settings.weightUnit;
+  if (typeof settings.addExerciseCalories === 'boolean') user.settings.addExerciseCalories = settings.addExerciseCalories;
   await user.save();
   res.json({ user: user.toPublic() });
 }));
