@@ -31,11 +31,17 @@ export function normalizeUrl(input: string) {
 
 /** True if a Macro Kitchen server answers at `url`. */
 export async function checkServer(url: string) {
+  // AbortSignal.timeout isn't available in every React Native runtime, so
+  // time out by hand. 15s leaves room for a slow first TLS handshake.
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 15000);
   try {
-    const res = await fetch(`${normalizeUrl(url)}/health`, { signal: AbortSignal.timeout(6000) });
+    const res = await fetch(`${normalizeUrl(url)}/health`, { signal: controller.signal });
     return res.ok && (await res.json()).ok === true;
   } catch {
     return false;
+  } finally {
+    clearTimeout(timer);
   }
 }
 
