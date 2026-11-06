@@ -9,6 +9,7 @@ import type { Extra, Ingredient, Recipe } from './types';
 export type Draft = {
   id?: string;
   name: string;
+  folder: string; // '' = no folder
   servings: string;
   totalWeightG: string; // '' = use sum of ingredients
   ingredients: Ingredient[];
@@ -19,7 +20,7 @@ export type Draft = {
 let seq = 0;
 const withKey = (i: Ingredient): Ingredient => ({ ...i, _key: i._key ?? `k${++seq}` });
 
-const empty = (): Draft => ({ name: '', servings: '1', totalWeightG: '', ingredients: [], extras: [], notes: '' });
+const empty = (): Draft => ({ name: '', folder: '', servings: '1', totalWeightG: '', ingredients: [], extras: [], notes: '' });
 
 let draft: Draft = empty();
 const listeners = new Set<() => void>();
@@ -40,6 +41,7 @@ export const recipeDraft = {
       ? {
           id: from._id,
           name: from.name,
+          folder: from.folder ?? '',
           servings: String(from.servings),
           totalWeightG: String(from.totalWeightG),
           ingredients: from.ingredients.map(withKey),

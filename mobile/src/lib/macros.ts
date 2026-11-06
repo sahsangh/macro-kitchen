@@ -23,3 +23,8 @@ export function fmt(n: number | undefined, digits = 0) {
 }
 
 export const fmtG = (g: number) => (g >= 1000 ? `${fmt(g / 1000, 2)} kg` : `${fmt(g, g < 10 ? 1 : 0)} g`);
+
+/** The distinct folder names across recipes, A to Z. */
+export function folderNames(recipes: { folder?: string }[] = []) {
+  return [...new Set(recipes.map((r) => r.folder).filter((f): f is string => !!f))].sort((a, b) => a.localeCompare(b));
+}

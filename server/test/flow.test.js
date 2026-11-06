@@ -134,3 +134,34 @@ test('users cannot see each other\'s data', async () => {
   assert.equal((await api('GET', '/foods/search?q=chick')).data.foods.filter((f) => f.source === 'custom').length, 0);
   token = mine;
 });
+
+test('recipes can be organized into folders', async () => {
+  const body = { name: 'Folder test', servings: 1, totalWeightG: 100, ingredients: [] };
+  const made = (await api('POST', '/recipes', { ...body, folder: '  Meal   Prep ' })).data.recipe;
+  assert.equal(made.folder, 'Meal Prep');
+
+  // Different capitalization joins the existing folder.
+  const second = (await api('POST', '/recipes', { ...body, name: 'Second', folder: 'meal prep' })).data.recipe;
+  assert.equal(second.folder, 'Meal Prep');
+
+  // Older app builds send no folder; saving must not clear it.
+  const kept = (await api('PUT', `/recipes/${made._id}`, body)).data.recipe;
+  assert.equal(kept.folder, 'Meal Prep');
+
+  const renamed = await api('POST', '/recipes/folders/rename', { from: 'Meal Prep', to: 'Lunches' });
+  assert.equal(renamed.data.folder, 'Lunches');
+  assert.equal((await api('GET', `/recipes/${second._id}`)).data.recipe.folder, 'Lunches');
+
+  // Renaming only the capitalization works too.
+  assert.equal((await api('POST', '/recipes/folders/rename', { from: 'Lunches', to: 'LUNCHES' })).data.folder, 'LUNCHES');
+
+  // Removing a folder keeps the recipes.
+  await api('POST', '/recipes/folders/rename', { from: 'LUNCHES', to: '' });
+  const left = (await api('GET', `/recipes/${made._id}`)).data.recipe;
+  assert.equal(left.name, 'Folder test');
+  assert.equal(left.folder, '');
+
+  assert.equal((await api('POST', '/recipes/folders/rename', { to: 'x' })).status, 400);
+  await api('DELETE', `/recipes/${made._id}`);
+  await api('DELETE', `/recipes/${second._id}`);
+});

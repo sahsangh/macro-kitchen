@@ -34,6 +34,23 @@ function parseRecipe(body) {
   };
 }
 
+const cleanFolder = (value) => String(value ?? '').trim().replace(/\s+/g, ' ').slice(0, 40);
+
+/** Reuse an existing folder's spelling, so "dinner" joins "Dinner". */
+async function matchFolder(userId, value, exclude) {
+  const folder = cleanFolder(value);
+  if (!folder) return '';
+  const existing = await Recipe.distinct('folder', { user: userId });
+  return existing.find((f) => f !== exclude && f.toLowerCase() === folder.toLowerCase()) ?? folder;
+}
+
+/** Older app builds don't send a folder; leave it unchanged for them. */
+const withFolder = async (req) => {
+  const data = parseRecipe(req.body);
+  if (req.body.folder !== undefined) data.folder = await matchFolder(req.userId, req.body.folder);
+  return data;
+};
+
 const own = async (req) => {
   const recipe = await Recipe.findOne({ _id: req.params.id, user: req.userId });
   if (!recipe) throw new HttpError(404, 'Recipe not found');
@@ -46,14 +63,23 @@ r.get('/', ah(async (req, res) => {
 
 r.get('/:id', ah(async (req, res) => res.json({ recipe: await own(req) })));
 
+/** Rename a folder, merge it into another, or (with an empty `to`) remove it. Recipes are kept. */
+r.post('/folders/rename', ah(async (req, res) => {
+  const from = cleanFolder(req.body.from);
+  if (!from) throw new HttpError(400, 'Which folder?');
+  const folder = await matchFolder(req.userId, req.body.to, from);
+  await Recipe.updateMany({ user: req.userId, folder: from }, { $set: { folder } }, { timestamps: false }); // keep the recipes' order
+  res.json({ folder });
+}));
+
 r.post('/', ah(async (req, res) => {
-  const recipe = await Recipe.create({ ...parseRecipe(req.body), user: req.userId });
+  const recipe = await Recipe.create({ ...(await withFolder(req)), user: req.userId });
   res.status(201).json({ recipe });
 }));
 
 r.put('/:id', ah(async (req, res) => {
   const recipe = await own(req);
-  recipe.set(parseRecipe(req.body));
+  recipe.set(await withFolder(req));
   await recipe.save();
   res.json({ recipe });
 }));

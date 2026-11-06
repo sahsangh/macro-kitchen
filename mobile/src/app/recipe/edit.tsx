@@ -4,11 +4,12 @@ import { useState } from 'react';
 import { TextInput, View } from 'react-native';
 
 import { MacroGrid, MacroLine } from '@/components/macros';
-import { Button, Card, Divider, ErrorText, Field, IconButton, Row, Screen, SectionHeader, success, T } from '@/components/ui';
+import { Button, Card, Chip, Divider, ErrorText, Field, IconButton, Row, Screen, SectionHeader, success, T } from '@/components/ui';
 import { Radius, Space, useTheme } from '@/constants/theme';
 import { post, put } from '@/lib/api';
-import { fmt, fmtG, ingredientsTotal, per100, scale } from '@/lib/macros';
+import { fmt, fmtG, folderNames, ingredientsTotal, per100, scale } from '@/lib/macros';
 import { recipeDraft, useRecipeDraft } from '@/lib/recipeDraft';
+import { useFetch } from '@/lib/useFetch';
 import type { Recipe } from '@/lib/types';
 
 export default function RecipeEditScreen() {
@@ -16,6 +17,7 @@ export default function RecipeEditScreen() {
   const d = useRecipeDraft();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const folders = folderNames(useFetch<{ recipes: Recipe[] }>('/recipes').data?.recipes);
 
   const rawWeight = d.ingredients.reduce((s, i) => s + (i.grams || 0), 0);
   const weight = Number(d.totalWeightG) || rawWeight;
@@ -31,7 +33,7 @@ export default function RecipeEditScreen() {
   const save = async () => {
     setBusy(true);
     setError(null);
-    const body = { name: d.name, servings, totalWeightG: weight, ingredients: d.ingredients, extras: d.extras, notes: d.notes };
+    const body = { name: d.name, folder: d.folder, servings, totalWeightG: weight, ingredients: d.ingredients, extras: d.extras, notes: d.notes };
     try {
       const { recipe } = d.id ? await put<{ recipe: Recipe }>(`/recipes/${d.id}`, body) : await post<{ recipe: Recipe }>('/recipes', body);
       success();
@@ -53,6 +55,13 @@ export default function RecipeEditScreen() {
         }}
       />
       <Field placeholder="Recipe name" value={d.name} onChangeText={(name) => recipeDraft.set({ name })} style={{ fontSize: 20, fontWeight: '700' }} />
+
+      <SectionHeader title="Folder" />
+      <Row gap={Space.sm} style={{ flexWrap: 'wrap' }}>
+        <Chip label="No folder" active={!d.folder} onPress={() => recipeDraft.set({ folder: '' })} />
+        {folders.map((f) => <Chip key={f} label={f} active={d.folder === f} onPress={() => recipeDraft.set({ folder: f })} />)}
+      </Row>
+      <Field placeholder="New folder name" value={folders.includes(d.folder) ? '' : d.folder} onChangeText={(folder) => recipeDraft.set({ folder })} maxLength={40} />
 
       <SectionHeader title={`Ingredients · ${fmtG(rawWeight)}`} />
       <Card style={{ paddingVertical: Space.sm, gap: 0 }}>

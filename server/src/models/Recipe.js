@@ -18,6 +18,7 @@ const RecipeSchema = new mongoose.Schema(
   {
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     name: { type: String, required: true, trim: true },
+    folder: { type: String, default: '', trim: true }, // '' = not in a folder
     ingredients: [IngredientSchema],
     extras: [ExtraSchema], // spices etc. with no macros
     servings: { type: Number, required: true, min: 0.01 },

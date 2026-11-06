@@ -23,6 +23,7 @@ export type Extra = { _id?: string; name: string; amount: string };
 export type Recipe = {
   _id: string;
   name: string;
+  folder?: string;
   ingredients: Ingredient[];
   extras: Extra[];
   servings: number;
